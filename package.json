@@ -1,0 +1,69 @@
+{
+  "name": "@pubcore/material-ui-storybook",
+  "version": "0.1.0",
+  "description": "Storybook of material-ui based react components",
+  "main": "js/components/index.js",
+  "scripts": {
+    "start": "node -r dotenv/config server",
+    "build": "rimraf js && cross-env BABEL_ENV=production babel --copy-files src -d js",
+    "watch": "cross-env BABEL_ENV=production babel --watch --copy-files src -d js | sed \"s/^/storybook: /\"",
+    "prepare": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "keywords": [],
+  "author": "pubcore",
+  "license": "MIT",
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "**/*": "prettier --write --ignore-unknown",
+    "**/*.?js": "eslint . --fix"
+  },
+  "peerDependencies": {
+    "@material-ui/core": "^4.11",
+    "@material-ui/icons": "^4.9",
+    "@material-ui/lab": "^4.0.0-alpha.58",
+    "@material-ui/styles": "^4.11.4",
+    "i18next": "^19.7",
+    "react": "16 - x",
+    "react-dom": "16 - x",
+    "react-i18next": "^11.7",
+    "react-router-dom": "^6.0.0-beta.0",
+    "styled-components": "^5.1"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.13.16",
+    "@babel/core": "^7.14.0",
+    "@babel/preset-env": "^7.14.1",
+    "@babel/preset-react": "^7.13.13",
+    "@storybook/addon-actions": "^6.2.9",
+    "@storybook/addon-essentials": "^6.2.9",
+    "@storybook/addon-links": "^6.2.9",
+    "@storybook/node-logger": "^6.2.9",
+    "@storybook/react": "^6.2.9",
+    "babel-loader": "^8.2.2",
+    "cross-env": "^7.0.3",
+    "dotenv": "^9.0.2",
+    "eslint": "^7.26.0",
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-plugin-react": "^7.23.2",
+    "husky": "^6.0.0",
+    "prettier": "^2.3.0",
+    "react-i18next": "^11.8.15",
+    "rimraf": "^3.0.2",
+    "storybook-dark-mode": "^1.0.8"
+  },
+  "dependencies": {
+    "@fontsource/fira-sans": "^4.3.0",
+    "lodash-es": "^4.17.21",
+    "mui-datatables": "^3.7.7",
+    "prop-types": "^15.7.2",
+    "react-hook-form": "^7.5.3"
+  }
+}
