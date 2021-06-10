@@ -8,6 +8,7 @@ module.exports = {
       options: {
         backgrounds: false,
         controls: false,
+        docs: false,
       },
     },
   ],

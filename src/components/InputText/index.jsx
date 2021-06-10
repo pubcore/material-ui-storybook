@@ -13,7 +13,7 @@ margin-bottom: ${spacing(1)}px;
 `;
 
 export default function InputText({
-  register,
+  register = (name) => ({ name }),
   name,
   label,
   helperText,
