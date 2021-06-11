@@ -1,9 +1,11 @@
 ## Storybook of material-ui based react components
 
-#### Install
+#### Install and run
 
 ```
 npm i @pubcore/material-ui-storybook
+cd material-ui-storybook
+npm run start
 ```
 
 #### Application component example
