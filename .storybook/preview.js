@@ -16,7 +16,7 @@ registerConfig({
   await i18n.use(initReactI18next).init({
     resources: {
       en: {
-        translation: { name: "This is a long name text." },
+        translation: { name: "Name" },
       },
     },
     fallbackLng: "en",
