@@ -20,7 +20,10 @@ const loadRows =
         var n = stopIndex - startIndex + 1;
         //repeat over 100000
         res({
-          rows: rows.slice(startIndex % 10000, (startIndex % 10000) + n),
+          rows: rows.slice(
+            startIndex % 10000,
+            (startIndex % 10000) + Math.min(n, count)
+          ),
           count: filter?.name ? rows.length : count,
         });
       }, 500)
@@ -86,7 +89,8 @@ export default {
   },
 };
 
-export const AllRowsLoaded = (args) => <Datatable {...{ ...args }} />,
+export const EmptyTable = () => <Datatable />,
+  AllRowsLoaded = (args) => <Datatable {...{ ...args }} />,
   SomeRowsLoadedNoServerSideFilterAvailable = (args) => (
     <Datatable {...{ ...args, loadRows: loadRows(1000000) }} />
   ),

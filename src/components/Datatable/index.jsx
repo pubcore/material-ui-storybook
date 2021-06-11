@@ -7,19 +7,26 @@ import styled from "styled-components";
 import { useTranslation } from "react-i18next";
 import { debounce } from "lodash-es";
 
+const noRowsRendererDefault = () => (
+  <EmptyTable>
+    <h1>{"∅"}</h1>
+  </EmptyTable>
+);
+const emptyArray = [];
+
 export default function Datatable({
-  columns = [],
+  columns = emptyArray,
   loadRows,
-  pageSize,
+  pageSize = 10,
   headerHeight = 40,
   rowHeight = 30,
-  noRowsRenderer,
+  noRowsRenderer = noRowsRendererDefault,
   loadAllUpTo = 100,
   rowSort,
   rowSortServer,
   rowFilter,
-  rowFilterServer = [],
-  rowFilterMatch = () => true,
+  rowFilterServer = emptyArray,
+  rowFilterMatch,
 }) {
   const { t } = useTranslation();
   const [rowdata, setRowdata] = useState({
@@ -35,12 +42,21 @@ export default function Datatable({
   useEffect(() => {
     //initial load first rows ...
     var mounted = true;
+    if (!loadRows) {
+      console.warn("'loadRows' not defined, default to empty array");
+      setRowdata((s) => ({
+        ...s,
+        serverMode: false,
+        rows: [],
+      }));
+      return;
+    }
     async function load() {
       var firstPage = await loadRows({
         startIndex: 0,
         stopIndex: pageSize - 1,
       });
-      if (firstPage.count <= loadAllUpTo) {
+      if (firstPage.count <= loadAllUpTo && firstPage.count > pageSize) {
         var all = await loadRows({
           startIndex: 0,
           stopIndex: firstPage.count - 1,
@@ -65,7 +81,6 @@ export default function Datatable({
   );
   const loadMoreRows = useCallback(
     async ({ startIndex, stopIndex }) => {
-      console.log({ startIndex, stopIndex });
       var { rows: newRows } = await loadRows({
         startIndex,
         stopIndex,
@@ -133,31 +148,36 @@ export default function Datatable({
     (props) => {
       const { className, style } = props;
       return (
-        <>
-          <div className={className} role="row" style={style}>
-            {props.columns}
-          </div>
-          {(!serverMode || rowFilterServer.length > 0) &&
-            Object.keys(rowFilter).length > 0 && (
-              <div className={className} role="row" style={style}>
-                {columns.map(
-                  ({ flexGrow = 0, width, flexShrink = 1, name }) => (
-                    <div
-                      key={name}
-                      className="ReactVirtualized__Table__headerColumn"
-                      style={{
-                        flex: `${flexGrow} ${flexShrink} ${width}px`,
-                      }}
-                    >
-                      {rowFilter[name] &&
-                        (!serverMode || rowFilterServer.indexOf(name) >= 0) &&
-                        rowFilter[name]({ onChange: handleChangeFilter, name })}
-                    </div>
-                  )
-                )}
-              </div>
-            )}
-        </>
+        columns.length > 0 && (
+          <>
+            <div className={className} role="row" style={style}>
+              {props.columns}
+            </div>
+            {(!serverMode || rowFilterServer.length > 0) &&
+              Object.keys(rowFilter).length > 0 && (
+                <div className={className} role="row" style={style}>
+                  {columns.map(
+                    ({ flexGrow = 0, width, flexShrink = 1, name }) => (
+                      <div
+                        key={name}
+                        className="ReactVirtualized__Table__headerColumn"
+                        style={{
+                          flex: `${flexGrow} ${flexShrink} ${width}px`,
+                        }}
+                      >
+                        {rowFilter[name] &&
+                          (!serverMode || rowFilterServer.indexOf(name) >= 0) &&
+                          rowFilter[name]({
+                            onChange: handleChangeFilter,
+                            name,
+                          })}
+                      </div>
+                    )
+                  )}
+                </div>
+              )}
+          </>
+        )
       );
     },
     [handleChangeFilter, rowFilter, columns, serverMode, rowFilterServer]
@@ -299,5 +319,12 @@ const Footer = styled.div`
 `}
   display: flex;
   justify-content: space-between;
+  align-items: center;
+`;
+const EmptyTable = styled.div`
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   align-items: center;
 `;
