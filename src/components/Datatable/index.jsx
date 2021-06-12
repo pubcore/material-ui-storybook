@@ -1,4 +1,10 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, {
+  useState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+} from "react";
 import { InfiniteLoader, Table, AutoSizer, Column } from "react-virtualized";
 import "react-virtualized/styles.css";
 import MuiPagination from "@material-ui/lab/Pagination";
@@ -103,16 +109,17 @@ export default function Datatable({
     [rows, filteredRows]
   );
   const handleRowsScroll = useCallback(
-    (onRowsRendered) => (props) => {
+    (props) => {
       setPagination((s) => ({
         ...s,
         page: Math.ceil(props.stopIndex / pageSize),
         scrollToIndex: undefined,
       }));
-      onRowsRendered(props);
+      _onRowsRendered.current(props);
     },
     [pageSize]
   );
+
   const handlePageChange = useCallback(
     (event, page) => {
       const scrollToIndex = (page - 1) * pageSize;
@@ -126,22 +133,26 @@ export default function Datatable({
       if (serverMode ? rowSortServer.indexOf(sortBy) < 0 : !rowSort[sortBy]) {
         return;
       }
-      if (serverMode) {
-        request({ filter, sorting: { sortBy, sortDirection } });
-      }
       const compare = (key) => (a, b) => rowSort[key](a?.[key], b?.[key]);
-      setRowdata(({ rows, filteredRows, ...rest }) => ({
-        ...rest,
-        rows,
-        filteredRows: serverMode
-          ? null
-          : ((r) => (sortDirection === "DESC" ? r.reverse() : r))(
-              (filteredRows || rows).slice().sort(compare(sortBy))
-            ),
-        sorting: { sortBy, sortDirection },
-      }));
+      setRowdata(({ rows, filteredRows, filter, serverMode, ...rest }) => {
+        if (serverMode) {
+          request({ filter, sorting: { sortBy, sortDirection } });
+        }
+        return {
+          ...rest,
+          rows,
+          filter,
+          serverMode,
+          filteredRows: serverMode
+            ? null
+            : ((r) => (sortDirection === "DESC" ? r.reverse() : r))(
+                (filteredRows || rows).slice().sort(compare(sortBy))
+              ),
+          sorting: { sortBy, sortDirection },
+        };
+      });
     },
-    [rowSort, serverMode, rowSortServer, request, filter]
+    [rowSort, serverMode, rowSortServer, request]
   );
 
   const headerRowRenderer = useCallback(
@@ -183,9 +194,9 @@ export default function Datatable({
     [handleChangeFilter, rowFilter, columns, serverMode, rowFilterServer]
   );
 
-  const request = debounce(
-    useCallback(
-      async ({ filter, sorting }) => {
+  const request = useMemo(
+    () =>
+      debounce(async ({ filter, sorting }) => {
         var { rows, count } = await loadRows({
           startIndex: 0,
           stopIndex: pageSize - 1,
@@ -197,10 +208,8 @@ export default function Datatable({
           rows: [...rows, ...new Array(count - rows.length).fill(null)],
         }));
         setPagination((s) => ({ ...s, page: 1, scrollToIndex: 0 }));
-      },
-      [loadRows, pageSize]
-    ),
-    300
+      }, 300),
+    [loadRows, pageSize]
   );
 
   const handleChangeFilter = useCallback(
@@ -230,6 +239,7 @@ export default function Datatable({
 
   const height = rowHeight * pageSize + headerHeight;
   const pageCount = Math.ceil(count / pageSize);
+  const _onRowsRendered = useRef();
 
   return rows === null ? (
     <CircularProgress />
@@ -243,43 +253,46 @@ export default function Datatable({
           loadMoreRows={loadMoreRows}
           rowCount={count}
         >
-          {({ onRowsRendered, registerChild }) => (
-            <AutoSizer disableHeight>
-              {({ width }) => (
-                <Table
-                  {...{
-                    headerHeight,
-                    height,
-                    rowGetter,
-                    rowHeight,
-                    width,
-                    noRowsRenderer,
-                    headerRowRenderer,
-                    onRowsRendered: handleRowsScroll(onRowsRendered),
-                    ref: registerChild,
-                    rowCount: count,
-                    scrollToIndex: pagination.scrollToIndex,
-                    scrollToAlignment: "start",
-                    sort: sort,
-                    sortBy: sorting.sortBy,
-                    sortDirection: sorting.sortDirection,
-                  }}
-                >
-                  {columns.map(({ name, width, flexGrow }) => (
-                    <Column
-                      key={name}
-                      {...{
-                        dataKey: name,
-                        width,
-                        label: t(name),
-                        flexGrow,
-                      }}
-                    />
-                  ))}
-                </Table>
-              )}
-            </AutoSizer>
-          )}
+          {({ onRowsRendered, registerChild }) => {
+            _onRowsRendered.current = onRowsRendered;
+            return (
+              <AutoSizer disableHeight>
+                {({ width }) => (
+                  <Table
+                    {...{
+                      headerHeight,
+                      height,
+                      rowGetter,
+                      rowHeight,
+                      width,
+                      noRowsRenderer,
+                      headerRowRenderer,
+                      onRowsRendered: handleRowsScroll,
+                      ref: registerChild,
+                      rowCount: count,
+                      scrollToIndex: pagination.scrollToIndex,
+                      scrollToAlignment: "start",
+                      sort: sort,
+                      sortBy: sorting.sortBy,
+                      sortDirection: sorting.sortDirection,
+                    }}
+                  >
+                    {columns.map(({ name, width, flexGrow }) => (
+                      <Column
+                        key={name}
+                        {...{
+                          dataKey: name,
+                          width,
+                          label: t(name),
+                          flexGrow,
+                        }}
+                      />
+                    ))}
+                  </Table>
+                )}
+              </AutoSizer>
+            );
+          }}
         </InfiniteLoader>
       </div>
       <Footer>
