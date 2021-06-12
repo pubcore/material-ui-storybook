@@ -7,7 +7,7 @@ import React, {
 } from "react";
 import { InfiniteLoader, Table, AutoSizer, Column } from "react-virtualized";
 import "react-virtualized/styles.css";
-import MuiPagination from "@material-ui/lab/Pagination";
+import Pagination from "@material-ui/lab/Pagination";
 import { CircularProgress, Paper } from "@material-ui/core";
 import styled from "styled-components";
 import { useTranslation } from "react-i18next";
@@ -328,7 +328,6 @@ const Container = styled(Paper)`
 `}
 `;
 
-const Pagination = styled(MuiPagination)``;
 const Footer = styled.div`
   ${({ theme: { spacing } }) => `
   padding: ${spacing(1)}px;
