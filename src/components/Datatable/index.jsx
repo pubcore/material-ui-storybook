@@ -23,7 +23,7 @@ const emptyArray = [];
 export default function Datatable({
   columns = emptyArray,
   loadRows,
-  pageSize = 10,
+  pageSize,
   headerHeight = 40,
   rowHeight = 30,
   noRowsRenderer = noRowsRendererDefault,
@@ -34,6 +34,9 @@ export default function Datatable({
   rowFilterServer = emptyArray,
   rowFilterMatch,
 }) {
+  if (!pageSize) {
+    pageSize = Math.round(window.innerHeight / rowHeight) - 7;
+  }
   const { t } = useTranslation();
   const [rowdata, setRowdata] = useState({
     rows: null,

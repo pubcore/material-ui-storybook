@@ -49,7 +49,6 @@ export default {
   title: "Datatable",
   args: {
     loadRows: loadRows(5000),
-    pageSize: 10,
     rowSort: {
       id: textCompare,
       name: textCompare,
