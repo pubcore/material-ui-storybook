@@ -48,6 +48,7 @@ const FilterText = ({ name, onChange }) => (
 export default {
   title: "Datatable",
   args: {
+    title: "List of fake addresses",
     loadRows: loadRows(5000),
     rowSort: {
       id: textCompare,
@@ -61,7 +62,6 @@ export default {
       { name: "id", width: 40 },
       { name: "name", width: 150 },
       { name: "email", width: 250 },
-      { name: "zip", width: 100 },
       { name: "city", width: 150 },
       { name: "date", width: 200, flexGrow: 1 },
     ],

@@ -9,6 +9,8 @@ import { InfiniteLoader, Table, AutoSizer, Column } from "react-virtualized";
 import "react-virtualized/styles.css";
 import Pagination from "@material-ui/lab/Pagination";
 import { CircularProgress, Paper } from "@material-ui/core";
+import { ActionBar } from "../";
+import ColumnSelector from "./ColumnsSelector";
 import styled from "styled-components";
 import { useTranslation } from "react-i18next";
 import { debounce } from "lodash-es";
@@ -21,6 +23,8 @@ const noRowsRendererDefault = () => (
 const emptyArray = [];
 
 export default function Datatable({
+  title,
+  //https://github.com/bvaughn/react-virtualized/blob/master/docs/Column.md
   columns = emptyArray,
   loadRows,
   pageSize,
@@ -33,6 +37,7 @@ export default function Datatable({
   rowFilter,
   rowFilterServer = emptyArray,
   rowFilterMatch,
+  ...rest
 }) {
   if (!pageSize) {
     pageSize = Math.round(window.innerHeight / rowHeight) - 7;
@@ -48,6 +53,10 @@ export default function Datatable({
   const { rows, filteredRows, filter, sorting, serverMode } = rowdata;
   const count = (filteredRows || rows)?.length ?? 0;
   const [pagination, setPagination] = useState({ page: 1 });
+  const columnsMap = columns.reduce((acc, { name, ...rest }) => {
+    return acc.set(name, rest);
+  }, new Map());
+
   useEffect(() => {
     //initial load first rows ...
     var mounted = true;
@@ -107,10 +116,12 @@ export default function Datatable({
     },
     [loadRows, filter, sorting]
   );
+
   const rowGetter = useCallback(
     ({ index }) => (filteredRows || rows)?.[index] || {},
     [rows, filteredRows]
   );
+
   const handleRowsScroll = useCallback(
     (props) => {
       setPagination((s) => ({
@@ -158,11 +169,29 @@ export default function Datatable({
     [rowSort, serverMode, rowSortServer, request]
   );
 
+  const [selectedColumns, setSelectedColumns] = useState(
+    columns.map(({ name }) => name)
+  );
+  const [columnsSequence, setColumnsSequence] = useState(selectedColumns);
+
+  const visibleColumns = useMemo(() => {
+    return columnsSequence.reduce(
+      (acc, name) =>
+        selectedColumns.includes(name)
+          ? acc.concat({
+              name,
+              ...(columnsMap.get(name) || { width: 100 }),
+            })
+          : acc,
+      []
+    );
+  }, [columnsMap, selectedColumns, columnsSequence]);
+
   const headerRowRenderer = useCallback(
     (props) => {
       const { className, style } = props;
       return (
-        columns.length > 0 && (
+        visibleColumns.length > 0 && (
           <>
             <div className={className} role="row" style={style}>
               {props.columns}
@@ -170,7 +199,7 @@ export default function Datatable({
             {(!serverMode || rowFilterServer.length > 0) &&
               Object.keys(rowFilter).length > 0 && (
                 <div className={className} role="row" style={style}>
-                  {columns.map(
+                  {visibleColumns.map(
                     ({ flexGrow = 0, width, flexShrink = 1, name }) => (
                       <div
                         key={name}
@@ -194,7 +223,7 @@ export default function Datatable({
         )
       );
     },
-    [handleChangeFilter, rowFilter, columns, serverMode, rowFilterServer]
+    [handleChangeFilter, rowFilter, serverMode, rowFilterServer, visibleColumns]
   );
 
   const request = useMemo(
@@ -245,9 +274,27 @@ export default function Datatable({
   const _onRowsRendered = useRef();
 
   return rows === null ? (
-    <CircularProgress />
+    <ActionBar>
+      &nbsp;
+      <CircularProgress />
+      &nbsp;
+    </ActionBar>
   ) : (
     <Container>
+      <ActionBar>
+        <h3>{title}</h3>&nbsp;
+        {count > 0 && (
+          <ColumnSelector
+            {...{
+              rows,
+              selected: selectedColumns,
+              setSelected: setSelectedColumns,
+              sequence: columnsSequence,
+              setSequence: setColumnsSequence,
+            }}
+          />
+        )}
+      </ActionBar>
       <div>
         <InfiniteLoader
           minimumBatchSize={50}
@@ -278,16 +325,16 @@ export default function Datatable({
                       sort: sort,
                       sortBy: sorting.sortBy,
                       sortDirection: sorting.sortDirection,
+                      ...rest,
                     }}
                   >
-                    {columns.map(({ name, width, flexGrow }) => (
+                    {visibleColumns.map(({ name, dataKey, label, ...rest }) => (
                       <Column
                         key={name}
                         {...{
-                          dataKey: name,
-                          width,
-                          label: t(name),
-                          flexGrow,
+                          dataKey: dataKey ?? name,
+                          label: label ?? t(name),
+                          ...rest,
                         }}
                       />
                     ))}
