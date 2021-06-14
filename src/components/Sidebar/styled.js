@@ -59,7 +59,12 @@ export const NavLink = styled(RrNavLink).attrs({ activeClassName })`
   color: ${palette.text.secondary};
   &.${activeClassName}{
     color:${palette.text.primary};
-  }
+    text-decoration:none;
+    background-image: linear-gradient(
+      to right,
+      ${palette.secondary.main} 93%,
+      ${palette.background.default} 97%
+    );
   `}
 `;
 
