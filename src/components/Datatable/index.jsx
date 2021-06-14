@@ -33,11 +33,13 @@ export default function Datatable({
   noRowsRenderer = noRowsRendererDefault,
   loadAllUpTo = 100,
   rowSort,
-  rowSortServer,
+  rowSortServer = emptyArray,
   rowFilter,
   rowFilterServer = emptyArray,
   rowFilterMatch,
   onRowClick,
+  selectedRows,
+  setSelectedRows,
   ...rest
 }) {
   if (!pageSize) {
@@ -145,7 +147,7 @@ export default function Datatable({
 
   const sort = useCallback(
     ({ sortBy, sortDirection }) => {
-      if (serverMode ? rowSortServer.indexOf(sortBy) < 0 : !rowSort[sortBy]) {
+      if (serverMode ? rowSortServer.includes(sortBy) : !rowSort[sortBy]) {
         return;
       }
       const compare = (key) => (a, b) => rowSort[key](a?.[key], b?.[key]);
@@ -197,29 +199,28 @@ export default function Datatable({
             <div className={className} role="row" style={style}>
               {props.columns}
             </div>
-            {(!serverMode || rowFilterServer.length > 0) &&
-              Object.keys(rowFilter).length > 0 && (
-                <div className={className} role="row" style={style}>
-                  {visibleColumns.map(
-                    ({ flexGrow = 0, width, flexShrink = 1, name }) => (
-                      <div
-                        key={name}
-                        className="ReactVirtualized__Table__headerColumn"
-                        style={{
-                          flex: `${flexGrow} ${flexShrink} ${width}px`,
-                        }}
-                      >
-                        {rowFilter[name] &&
-                          (!serverMode || rowFilterServer.indexOf(name) >= 0) &&
-                          rowFilter[name]({
-                            onChange: handleChangeFilter,
-                            name,
-                          })}
-                      </div>
-                    )
-                  )}
-                </div>
-              )}
+            {(!serverMode || rowFilterServer.length > 0) && rowFilter && (
+              <div className={className} role="row" style={style}>
+                {visibleColumns.map(
+                  ({ flexGrow = 0, width, flexShrink = 1, name }) => (
+                    <div
+                      key={name}
+                      className="ReactVirtualized__Table__headerColumn"
+                      style={{
+                        flex: `${flexGrow} ${flexShrink} ${width}px`,
+                      }}
+                    >
+                      {rowFilter[name] &&
+                        (!serverMode || rowFilterServer.includes(name)) &&
+                        rowFilter[name]({
+                          onChange: handleChangeFilter,
+                          name,
+                        })}
+                    </div>
+                  )
+                )}
+              </div>
+            )}
           </>
         )
       );
