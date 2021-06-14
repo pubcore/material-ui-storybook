@@ -37,6 +37,7 @@ export default function Datatable({
   rowFilter,
   rowFilterServer = emptyArray,
   rowFilterMatch,
+  onRowClick,
   ...rest
 }) {
   if (!pageSize) {
@@ -280,7 +281,7 @@ export default function Datatable({
       &nbsp;
     </ActionBar>
   ) : (
-    <Container>
+    <Container {...{ onRowClick }}>
       <ActionBar>
         <h3>{title}</h3>&nbsp;
         {count > 0 && (
@@ -317,6 +318,7 @@ export default function Datatable({
                       width,
                       noRowsRenderer,
                       headerRowRenderer,
+                      onRowClick,
                       onRowsRendered: handleRowsScroll,
                       ref: registerChild,
                       rowCount: count,
@@ -358,9 +360,10 @@ export default function Datatable({
 }
 
 const Container = styled(Paper)`
-  ${({ theme: { palette } }) => `
+  ${({ theme: { palette }, onRowClick }) => `
   .ReactVirtualized__Table__row {
     border-bottom: 1px solid ${palette.divider};
+    ${onRowClick && `cursor: pointer;`}
   }
   .ReactVirtualized__Table__row:hover {
     background-color: ${palette.action.hover};

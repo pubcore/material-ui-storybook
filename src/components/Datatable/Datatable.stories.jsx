@@ -2,6 +2,7 @@ import Datatable from "./";
 import React from "react";
 import { TextField } from "@material-ui/core";
 import testRows from "./testRows.json";
+import { action } from "@storybook/addon-actions";
 
 const loadRows =
   (count) =>
@@ -100,6 +101,15 @@ export const EmptyTable = () => <Datatable />,
         loadRows: loadRows(1000000),
         rowFilterServer: ["name"],
         rowSortServer: ["name"],
+      }}
+    />
+  ),
+  BoundOnRowClick = (args) => (
+    <Datatable
+      {...{
+        ...args,
+        loadRows: loadRows(10),
+        onRowClick: action("onRowClick"),
       }}
     />
   );
