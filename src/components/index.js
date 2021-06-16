@@ -15,4 +15,5 @@ export { default as InputText } from "./InputText";
 export { default as ActionBar } from "./ActionBar";
 export { default as TabPanel } from "./Tabs";
 export { Warning, Error, Ok, Info } from "./Chip";
+export { default as ActionSelector } from "./ActionSelector";
 export * from "../AppDecorator";
