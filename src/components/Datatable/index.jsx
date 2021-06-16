@@ -14,6 +14,8 @@ import ColumnSelector from "./ColumnsSelector";
 import styled from "styled-components";
 import { useTranslation } from "react-i18next";
 import { debounce } from "lodash-es";
+import initThroat from "throat";
+const throat = initThroat(10);
 
 const noRowsRendererDefault = () => (
   <EmptyTable>
@@ -21,6 +23,7 @@ const noRowsRendererDefault = () => (
   </EmptyTable>
 );
 const emptyArray = [];
+const cellValDefault = (row, key) => row[key];
 
 export default function Datatable({
   title,
@@ -38,12 +41,13 @@ export default function Datatable({
   rowFilterServer = emptyArray,
   rowFilterMatch,
   onRowClick,
-  selectedRows,
-  setSelectedRows,
+  maxResourceLimit = 100,
+  manageColumns = true,
+  cellVal = cellValDefault,
   ...rest
 }) {
   if (!pageSize) {
-    pageSize = Math.round(window.innerHeight / rowHeight) - 7;
+    pageSize = Math.max(Math.round(window.innerHeight / rowHeight) - 11, 10);
   }
   const { t } = useTranslation();
   const [rowdata, setRowdata] = useState({
@@ -78,10 +82,22 @@ export default function Datatable({
         stopIndex: pageSize - 1,
       });
       if (firstPage.count <= loadAllUpTo && firstPage.count > pageSize) {
-        var all = await loadRows({
-          startIndex: 0,
-          stopIndex: firstPage.count - 1,
-        });
+        var batchCount = Math.ceil(firstPage.count / maxResourceLimit);
+        var all = {
+          rows: (
+            await Promise.all(
+              new Array(batchCount).fill(null).map((_, index) =>
+                throat(() =>
+                  loadRows({
+                    startIndex: index * maxResourceLimit,
+                    stopIndex: (index + 1) * maxResourceLimit - 1,
+                  })
+                )
+              )
+            )
+          ).reduce((acc, { rows }) => acc.concat(rows), []),
+          count: firstPage.count,
+        };
       }
       var { rows, count } = all || firstPage;
       if (mounted) {
@@ -94,7 +110,7 @@ export default function Datatable({
     }
     load();
     return () => (mounted = false);
-  }, [loadRows, pageSize, loadAllUpTo]);
+  }, [loadRows, pageSize, loadAllUpTo, maxResourceLimit]);
 
   const isRowLoaded = useCallback(
     ({ index }) => Boolean((filteredRows || rows)[index]),
@@ -145,12 +161,33 @@ export default function Datatable({
     [pageSize]
   );
 
+  const request = useMemo(
+    () =>
+      debounce(async ({ filter, sorting }) => {
+        var { rows, count } = await loadRows({
+          startIndex: 0,
+          stopIndex: pageSize - 1,
+          filter,
+          sorting,
+        });
+        setRowdata((s) => ({
+          ...s,
+          rows: [...rows, ...new Array(count - rows.length).fill(null)],
+        }));
+        setPagination((s) => ({ ...s, page: 1, scrollToIndex: 0 }));
+      }, 300),
+    [loadRows, pageSize]
+  );
+
   const sort = useCallback(
     ({ sortBy, sortDirection }) => {
       if (serverMode ? rowSortServer.includes(sortBy) : !rowSort[sortBy]) {
         return;
       }
-      const compare = (key) => (a, b) => rowSort[key](a?.[key], b?.[key]);
+
+      const compare = (key) => (a, b) =>
+        rowSort[key](cellVal(a, key), cellVal(b, key));
+
       setRowdata(({ rows, filteredRows, filter, serverMode, ...rest }) => {
         if (serverMode) {
           request({ filter, sorting: { sortBy, sortDirection } });
@@ -169,7 +206,7 @@ export default function Datatable({
         };
       });
     },
-    [rowSort, serverMode, rowSortServer, request]
+    [rowSort, serverMode, rowSortServer, request, cellVal]
   );
 
   const [selectedColumns, setSelectedColumns] = useState(
@@ -189,6 +226,31 @@ export default function Datatable({
       []
     );
   }, [columnsMap, selectedColumns, columnsSequence]);
+
+  const handleChangeFilter = useCallback(
+    async ({ target: { name, value } }) => {
+      setRowdata(({ filter = {}, rows, serverMode, sorting, ...rest }) => {
+        var newFilter = {
+          ...filter,
+          [name]: value === "" ? undefined : value,
+        };
+        if (serverMode) {
+          request({ filter: newFilter, sorting });
+        }
+        return {
+          ...rest,
+          rows,
+          sorting,
+          serverMode,
+          filter: newFilter,
+          filteredRows: serverMode
+            ? null
+            : rows.filter((row) => rowFilterMatch({ row, filter: newFilter })),
+        };
+      });
+    },
+    [rowFilterMatch, request]
+  );
 
   const headerRowRenderer = useCallback(
     (props) => {
@@ -228,49 +290,6 @@ export default function Datatable({
     [handleChangeFilter, rowFilter, serverMode, rowFilterServer, visibleColumns]
   );
 
-  const request = useMemo(
-    () =>
-      debounce(async ({ filter, sorting }) => {
-        var { rows, count } = await loadRows({
-          startIndex: 0,
-          stopIndex: pageSize - 1,
-          filter,
-          sorting,
-        });
-        setRowdata((s) => ({
-          ...s,
-          rows: [...rows, ...new Array(count - rows.length).fill(null)],
-        }));
-        setPagination((s) => ({ ...s, page: 1, scrollToIndex: 0 }));
-      }, 300),
-    [loadRows, pageSize]
-  );
-
-  const handleChangeFilter = useCallback(
-    async ({ target: { name, value } }) => {
-      setRowdata(({ filter = {}, rows, serverMode, sorting, ...rest }) => {
-        var newFilter = {
-          ...filter,
-          [name]: value === "" ? undefined : value,
-        };
-        if (serverMode) {
-          request({ filter: newFilter, sorting });
-        }
-        return {
-          ...rest,
-          rows,
-          sorting,
-          serverMode,
-          filter: newFilter,
-          filteredRows: serverMode
-            ? null
-            : rows.filter((row) => rowFilterMatch({ row, filter: newFilter })),
-        };
-      });
-    },
-    [rowFilterMatch, request]
-  );
-
   const height = rowHeight * pageSize + headerHeight;
   const pageCount = Math.ceil(count / pageSize);
   const _onRowsRendered = useRef();
@@ -278,14 +297,14 @@ export default function Datatable({
   return rows === null ? (
     <ActionBar>
       &nbsp;
-      <CircularProgress />
+      <CircularProgress color="secondary" />
       &nbsp;
     </ActionBar>
   ) : (
-    <Container {...{ onRowClick }}>
+    <Container {...{ has_row_action: onRowClick ? "1" : "" }}>
       <ActionBar>
         <h3>{title}</h3>&nbsp;
-        {count > 0 && (
+        {manageColumns && count > 0 && (
           <ColumnSelector
             {...{
               rows,
@@ -361,10 +380,10 @@ export default function Datatable({
 }
 
 const Container = styled(Paper)`
-  ${({ theme: { palette }, onRowClick }) => `
+  ${({ theme: { palette }, has_row_action }) => `
   .ReactVirtualized__Table__row {
     border-bottom: 1px solid ${palette.divider};
-    ${onRowClick && `cursor: pointer;`}
+    ${has_row_action && `cursor: pointer;`}
   }
   .ReactVirtualized__Table__row:hover {
     background-color: ${palette.action.hover};

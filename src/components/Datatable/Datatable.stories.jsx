@@ -3,8 +3,8 @@ import React from "react";
 import { TextField } from "@material-ui/core";
 import testRows from "./testRows.json";
 import { action } from "@storybook/addon-actions";
-
-const loadRows =
+const simulateRequestTime = 150; //ms
+const loadRows = 
   (count) =>
   ({ startIndex, stopIndex, filter, sorting }) => {
     return new Promise((res) =>
@@ -27,7 +27,7 @@ const loadRows =
           ),
           count: filter?.name ? rows.length : count,
         });
-      }, 500)
+      }, simulateRequestTime)
     );
   };
 

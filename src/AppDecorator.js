@@ -23,7 +23,9 @@ export const AppDecorator = ({
       <MuiThemeProvider {...{ theme }}>
         <ThemeProvider {...{ theme }}>
           <CssBaseline />
-          <BrowserRouter>{children}</BrowserRouter>
+          <BrowserRouter>
+            <React.StrictMode>{children}</React.StrictMode>
+          </BrowserRouter>
         </ThemeProvider>
       </MuiThemeProvider>
     </StylesProvider>
