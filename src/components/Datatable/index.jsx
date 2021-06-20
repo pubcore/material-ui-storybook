@@ -287,7 +287,6 @@ export default function Datatable({
                       <div
                         key="_rowSelection"
                         className="ReactVirtualized__Table__headerColumn"
-                        dataKey="_rowSelection"
                         style={{
                           flex: `0 1 40px`,
                         }}
