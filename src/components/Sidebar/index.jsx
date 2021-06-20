@@ -17,9 +17,10 @@ export default function Sidebar({ resources, isOpen, toggle, close }) {
       close();
     }
   }, [isXSmall, isSmall, close]);
+  const onClose = useCallback(() => toggle(), [toggle]);
 
   return (
-    <Drawer {...{ variant, open, onClose: toggle }}>
+    <Drawer {...{ variant, open, onClose }}>
       <Menu {...{ open }}>
         {_resources.map(({ name, Icon, to }) => {
           //conditional wrap

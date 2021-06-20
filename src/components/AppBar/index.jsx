@@ -1,4 +1,4 @@
-import React, { Children } from "react";
+import React, { Children, useCallback } from "react";
 import { AppBar as MuiAppBar, Tooltip, useMediaQuery } from "@material-ui/core";
 import useScrollTrigger from "@material-ui/core/useScrollTrigger";
 import Slide from "@material-ui/core/Slide";
@@ -21,6 +21,7 @@ export default function AppBar({
   const scrollTrigger = useScrollTrigger();
   const isXSmall = useMediaQuery(({ breakpoints }) => breakpoints.down("xs"));
   const { t } = useTranslation();
+  const onClick = useCallback(() => toggleSidebar(), [toggleSidebar]);
 
   return (
     <Slide appear={false} direction="down" in={!scrollTrigger}>
@@ -30,7 +31,7 @@ export default function AppBar({
             title={t(open ? "close_menu" : "open_menu", "Open/Close menu")}
             enterDelay={1000}
           >
-            <IconButton color="inherit" onClick={toggleSidebar}>
+            <IconButton color="inherit" {...{ onClick }}>
               <MenuIcon {...{ open }} />
             </IconButton>
           </Tooltip>
