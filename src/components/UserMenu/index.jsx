@@ -36,6 +36,7 @@ export default function UserMenu({ user = {}, logout, children }) {
     <div>
       {username ? (
         <Button
+          id={"ukgdhz"}
           aria-label={t(label)}
           color="inherit"
           startIcon={

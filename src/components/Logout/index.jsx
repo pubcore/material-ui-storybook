@@ -25,6 +25,7 @@ const LogoutWithRef = forwardRef(function Logout({ logout }, ref) {
 
   return (
     <MenuItem
+      id={"zhjjdr"}
       {...{ onClick: logout }}
       ref={ref}
       component={isXSmall ? "span" : "li"}
