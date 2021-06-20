@@ -18,11 +18,7 @@ const createTheme = ({darkMode}) => createMuiTheme({/*...*/})
 
 export default function Application() {
   return AppDecorator({ useDarkMode, createTheme })(() => {
-    return (
-      <React.StrictMode>
-        <div>example</div>
-      </React.StrictMode>
-    )
+    return <div>example</div>
   })
 }
 ```
@@ -30,4 +26,4 @@ export default function Application() {
 #### https
 
 To run storybook over https, enable it in .env file and define absolute path to
-corresponding cert, ca and key file. The .env file must be ignored by git and npm
+corresponding cert, ca and key file. The .env file is ignored by git and npm
