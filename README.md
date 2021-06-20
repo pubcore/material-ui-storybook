@@ -11,7 +11,7 @@ npm run start
 #### Application component example
 
 ```
-import {AppDecorator} from '@your-scope/storybook-ui'
+import {AppDecorator} from '@pubcore/material-ui-storybook'
 import { createMuiTheme } from "@material-ui/core/styles";
 const useDarkMode = () => null //null or boolean, if null => mediaquery detection
 const createTheme = ({darkMode}) => createMuiTheme({/*...*/})

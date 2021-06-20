@@ -11,7 +11,7 @@
   },
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "git@github.com:pubcore/material-ui-storybook.git"
   },
   "keywords": [],
   "author": "pubcore",
