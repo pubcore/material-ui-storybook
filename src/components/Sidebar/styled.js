@@ -11,7 +11,10 @@ const mapWidth = (sidebar, open) =>
     : sidebar?.closedWidth ?? CLOSED_DRAWER_WIDTH;
 
 export const Drawer = styled(MuiDrawer)`
-  ${({ theme: { sidebar, transitions, breakpoints, palette }, open }) => `
+  ${({
+    theme: { sidebar, transitions, breakpoints, palette, spacing },
+    open,
+  }) => `
   .MuiDrawer-paper{
     position: relative;
     height: 100%;
@@ -33,6 +36,7 @@ export const Drawer = styled(MuiDrawer)`
       border: none;
     }
     z-index: inherit;
+    margin-right: ${spacing(1)}px;
   }
 `}
 `;
@@ -62,8 +66,8 @@ export const NavLink = styled(RrNavLink).attrs({ activeClassName })`
     text-decoration:none;
     background-image: linear-gradient(
       to right,
-      ${palette.secondary.main} 93%,
-      ${palette.background.default} 97%
+      ${palette.secondary.main} 20%,
+      ${palette.background.default} 75%
     );
   `}
 `;
