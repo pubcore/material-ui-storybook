@@ -4,7 +4,7 @@ import { TextField } from "@material-ui/core";
 import testRows from "./testRows.json";
 import { action } from "@storybook/addon-actions";
 const simulateRequestTime = 150; //ms
-const loadRows = 
+const loadRows =
   (count) =>
   ({ startIndex, stopIndex, filter, sorting }) => {
     return new Promise((res) =>
@@ -13,13 +13,13 @@ const loadRows =
           filter?.name ? row.name.includes(filter.name) : true
         );
         if (sorting?.sortDirection) {
-          rows = rows.sort((a, b) => (a.name < b.name ? 1 : -1));
+          rows = rows.sort((a, b) => (a.name < b.name ? -1 : 1));
         }
         if (sorting?.sortDirection === "DESC") {
           rows.reverse();
         }
         var n = stopIndex - startIndex + 1;
-        //repeat over 100000
+        //repeat test rows for counts over 10000
         res({
           rows: rows.slice(
             startIndex % 10000,
@@ -110,6 +110,29 @@ export const EmptyTable = () => <Datatable />,
         ...args,
         loadRows: loadRows(10),
         onRowClick: action("onRowClick"),
+      }}
+    />
+  ),
+  RowSelectionImutable = (args) => (
+    <Datatable {...{ ...args, selectedRows: new Set([0, 1]) }} />
+  ),
+  RowSelection = (args) => (
+    <Datatable
+      {...{
+        ...args,
+        selectedRows: new Set([0, 1]),
+        toggleRowSelection: action("toggleRowSelection"),
+      }}
+    />
+  ),
+  RowSelectionWithToggleAllRowsHeader = (args) => (
+    <Datatable
+      {...{
+        ...args,
+        loadRows: loadRows(2),
+        selectedRows: new Set([0]),
+        toggleRowSelection: action("toggleRowSelection"),
+        toggleAllRowsSelection: action("toggleAllRowsSelection"),
       }}
     />
   );

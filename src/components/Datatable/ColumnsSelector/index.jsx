@@ -16,20 +16,18 @@ import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 
 export default function ColumnSelector({
-  rows,
-  setSelected,
-  selected = [],
-  sequence = [],
+  columns = [],
   setSequence,
+  selected = [],
+  setSelected,
 }) {
-  const onClose = useCallback(() => setAnchorEl(null), [setAnchorEl]);
   const [anchorEl, setAnchorEl] = useState(null);
+  const onClose = useCallback(() => setAnchorEl(null), [setAnchorEl]);
   const showPopover = useCallback(({ currentTarget }) => {
     setAnchorEl(currentTarget);
   }, []);
   const open = Boolean(anchorEl);
   const { t } = useTranslation();
-  const columns = sequence;
   const switchColumn = useCallback(
     ({ currentTarget: { name } }, checked) =>
       setSelected(
@@ -48,37 +46,28 @@ export default function ColumnSelector({
   );
   const stepRight = useCallback(
     ({ currentTarget: { name } }) => {
-      var current = sequence.indexOf(name);
-      if (current >= sequence.length - 1) {
-        return sequence;
+      var current = columns.indexOf(name);
+      if (current >= columns.length - 1) {
+        return columns;
       }
-      var a = sequence.slice();
+      var a = columns.slice();
       [a[current], a[current + 1]] = [a[current + 1], a[current]];
       setSequence(a);
     },
-    [sequence, setSequence]
+    [columns, setSequence]
   );
   const stepLeft = useCallback(
     ({ currentTarget: { name } }) => {
-      var current = sequence.indexOf(name);
+      var current = columns.indexOf(name);
       if (current <= 0) {
-        return sequence;
+        return columns;
       }
-      var a = sequence.slice();
+      var a = columns.slice();
       [a[current], a[current - 1]] = [a[current - 1], a[current]];
       setSequence(a);
     },
-    [sequence, setSequence]
+    [columns, setSequence]
   );
-  const allCols = selected.concat(
-    Object.keys(rows?.[0] || {}).reduce(
-      (acc, col) => (selected.includes(col) ? acc : acc.concat(col)),
-      []
-    )
-  );
-  if (sequence.length != allCols.length) {
-    setSequence(allCols);
-  }
   return (
     <div>
       <Tooltip title={t("manage_columns")}>

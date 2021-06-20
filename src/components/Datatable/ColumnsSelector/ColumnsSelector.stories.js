@@ -1,6 +1,6 @@
 import React from "react";
 import ColumnsSelector from "./";
-
+const columns = ["one", "two", "three", "for", "five", "six", "seven"];
 export default {
   title: "columns selector",
   argTypes: {
@@ -9,7 +9,7 @@ export default {
   },
   args: {
     selected: ["one", "two"],
-    sequence: ["one", "two"],
+    columns,
   },
 };
 
@@ -30,6 +30,6 @@ const rows = [
 export const Default = (args) => <ColumnsSelector {...{ ...args, rows }} />,
   WithFilter = (args) => (
     <ColumnsSelector
-      {...{ ...args, rows: [{ ...rows[0], ten: 10, eleven: 11 }] }}
+      {...{ ...args, columns: [...columns, "eight", "nine", "ten", "eleven"] }}
     />
   );

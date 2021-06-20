@@ -8,9 +8,10 @@ import React, {
 import { InfiniteLoader, Table, AutoSizer, Column } from "react-virtualized";
 import "react-virtualized/styles.css";
 import Pagination from "@material-ui/lab/Pagination";
-import { CircularProgress, Paper } from "@material-ui/core";
+import { CircularProgress, Paper, Checkbox, Tooltip } from "@material-ui/core";
 import { ActionBar } from "../";
 import ColumnSelector from "./ColumnsSelector";
+import ColumnHead from "./ColumnHead";
 import styled from "styled-components";
 import { useTranslation } from "react-i18next";
 import { debounce } from "lodash-es";
@@ -44,6 +45,11 @@ export default function Datatable({
   maxResourceLimit = 100,
   manageColumns = true,
   cellVal = cellValDefault,
+  selectedRows,
+  toggleRowSelection,
+  toggleAllRowsSelection,
+  selectRowCellRenderer = selectRowCellRendererDefault,
+  selectRowHeaderRenderer = selectRowHeaderRendererDefault,
   ...rest
 }) {
   if (!pageSize) {
@@ -61,7 +67,12 @@ export default function Datatable({
   const count = (filteredRows || rows)?.length ?? 0;
   const [pagination, setPagination] = useState({ page: 1 });
   const columnsMap = columns.reduce((acc, { name, ...rest }) => {
-    return acc.set(name, rest);
+    return acc.set(name, {
+      ...rest,
+      disableSort: serverMode
+        ? !rowSortServer.includes(name)
+        : !rowSort?.[name],
+    });
   }, new Map());
 
   useEffect(() => {
@@ -72,7 +83,7 @@ export default function Datatable({
       setRowdata((s) => ({
         ...s,
         serverMode: false,
-        rows: [],
+        rows: emptyArray,
       }));
       return;
     }
@@ -81,9 +92,10 @@ export default function Datatable({
         startIndex: 0,
         stopIndex: pageSize - 1,
       });
+      var all;
       if (firstPage.count <= loadAllUpTo && firstPage.count > pageSize) {
         var batchCount = Math.ceil(firstPage.count / maxResourceLimit);
-        var all = {
+        all = {
           rows: (
             await Promise.all(
               new Array(batchCount).fill(null).map((_, index) =>
@@ -98,7 +110,10 @@ export default function Datatable({
           ).reduce((acc, { rows }) => acc.concat(rows), []),
           count: firstPage.count,
         };
+      } else if (firstPage.count <= pageSize) {
+        all = firstPage;
       }
+
       var { rows, count } = all || firstPage;
       if (mounted) {
         setRowdata((s) => ({
@@ -106,6 +121,9 @@ export default function Datatable({
           serverMode: !all,
           rows: [...rows, ...new Array(count - rows.length).fill(null)],
         }));
+        setColumnsSequence((sequence) => [
+          ...new Set([...sequence, ...Object.keys(rows[0])]),
+        ]);
       }
     }
     load();
@@ -161,6 +179,7 @@ export default function Datatable({
     [pageSize]
   );
 
+  //request sorted and filtered data from server (serverMode == true)
   const request = useMemo(
     () =>
       debounce(async ({ filter, sorting }) => {
@@ -181,7 +200,7 @@ export default function Datatable({
 
   const sort = useCallback(
     ({ sortBy, sortDirection }) => {
-      if (serverMode ? rowSortServer.includes(sortBy) : !rowSort[sortBy]) {
+      if (serverMode ? !rowSortServer.includes(sortBy) : !rowSort[sortBy]) {
         return;
       }
 
@@ -263,22 +282,36 @@ export default function Datatable({
             </div>
             {(!serverMode || rowFilterServer.length > 0) && rowFilter && (
               <div className={className} role="row" style={style}>
-                {visibleColumns.map(
-                  ({ flexGrow = 0, width, flexShrink = 1, name }) => (
-                    <div
-                      key={name}
-                      className="ReactVirtualized__Table__headerColumn"
-                      style={{
-                        flex: `${flexGrow} ${flexShrink} ${width}px`,
-                      }}
-                    >
-                      {rowFilter[name] &&
-                        (!serverMode || rowFilterServer.includes(name)) &&
-                        rowFilter[name]({
-                          onChange: handleChangeFilter,
-                          name,
-                        })}
-                    </div>
+                {(selectedRows
+                  ? [
+                      <div
+                        key="_rowSelection"
+                        className="ReactVirtualized__Table__headerColumn"
+                        dataKey="_rowSelection"
+                        style={{
+                          flex: `0 1 40px`,
+                        }}
+                      />,
+                    ]
+                  : []
+                ).concat(
+                  visibleColumns.map(
+                    ({ flexGrow = 0, width, flexShrink = 1, name }) => (
+                      <div
+                        key={name}
+                        className="ReactVirtualized__Table__headerColumn"
+                        style={{
+                          flex: `${flexGrow} ${flexShrink} ${width}px`,
+                        }}
+                      >
+                        {rowFilter[name] &&
+                          (!serverMode || rowFilterServer.includes(name)) &&
+                          rowFilter[name]({
+                            onChange: handleChangeFilter,
+                            name,
+                          })}
+                      </div>
+                    )
                   )
                 )}
               </div>
@@ -287,7 +320,14 @@ export default function Datatable({
         )
       );
     },
-    [handleChangeFilter, rowFilter, serverMode, rowFilterServer, visibleColumns]
+    [
+      handleChangeFilter,
+      rowFilter,
+      serverMode,
+      rowFilterServer,
+      visibleColumns,
+      selectedRows,
+    ]
   );
 
   const height = rowHeight * pageSize + headerHeight;
@@ -307,11 +347,10 @@ export default function Datatable({
         {manageColumns && count > 0 && (
           <ColumnSelector
             {...{
-              rows,
+              columns: columnsSequence,
+              setSequence: setColumnsSequence,
               selected: selectedColumns,
               setSelected: setSelectedColumns,
-              sequence: columnsSequence,
-              setSequence: setColumnsSequence,
             }}
           />
         )}
@@ -350,16 +389,40 @@ export default function Datatable({
                       ...rest,
                     }}
                   >
-                    {visibleColumns.map(({ name, dataKey, label, ...rest }) => (
-                      <Column
-                        key={name}
-                        {...{
-                          dataKey: dataKey ?? name,
-                          label: label ?? t(name),
-                          ...rest,
-                        }}
-                      />
-                    ))}
+                    {(selectedRows
+                      ? [
+                          <Column
+                            columnData={{
+                              selectedRows,
+                              toggleRowSelection,
+                              toggleAllRowsSelection,
+                              rowCount: count,
+                              title: t("toggle_all_rows_selection"),
+                            }}
+                            key="_rowSelection"
+                            cellRenderer={selectRowCellRenderer}
+                            dataKey="_rowSelection"
+                            width={40}
+                            headerRenderer={selectRowHeaderRenderer}
+                            disableSort={true}
+                          />,
+                        ]
+                      : []
+                    ).concat(
+                      visibleColumns.map(
+                        ({ name, dataKey, label, ...rest }) => (
+                          <Column
+                            key={name}
+                            {...{
+                              dataKey: dataKey ?? name,
+                              label: label ?? t(name),
+                              headerRenderer: ColumnHead,
+                              ...rest,
+                            }}
+                          />
+                        )
+                      )
+                    )}
                   </Table>
                 )}
               </AutoSizer>
@@ -378,6 +441,40 @@ export default function Datatable({
     </Container>
   );
 }
+
+const selectRowCellRendererDefault = ({
+  columnData: { selectedRows, toggleRowSelection },
+  rowIndex,
+}) => (
+  <Checkbox
+    {...{
+      id: "olmekd#" + rowIndex,
+      name: String(rowIndex),
+      checked: selectedRows.has(rowIndex),
+      onChange: toggleRowSelection,
+    }}
+  />
+);
+
+const selectRowHeaderRendererDefault = ({
+  columnData: { selectedRows, toggleAllRowsSelection, rowCount, title },
+}) => {
+  return (
+    toggleAllRowsSelection && (
+      <Tooltip title={title}>
+        <Checkbox
+          {...{
+            id: "etdaaq",
+            indeterminate:
+              selectedRows.size > 0 && selectedRows.size != rowCount,
+            checked: rowCount === selectedRows.size,
+            onChange: toggleAllRowsSelection,
+          }}
+        />
+      </Tooltip>
+    )
+  );
+};
 
 const Container = styled(Paper)`
   ${({ theme: { palette }, has_row_action }) => `
